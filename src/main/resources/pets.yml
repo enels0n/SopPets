@@ -1,0 +1,23 @@
+pets:
+  fox:
+    display-name: '&6Fox'
+    entity-type: FOX
+    model-id: ''
+    use-fmm: false
+    baby: true
+    glowing: false
+    follow-offset:
+      x: 1.0
+      y: 0.0
+      z: 1.0
+  spirit:
+    display-name: '&bSpirit'
+    entity-type: BAT
+    model-id: 'spirit_pet'
+    use-fmm: true
+    baby: false
+    glowing: false
+    follow-offset:
+      x: 1.2
+      y: 1.0
+      z: 1.2

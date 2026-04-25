@@ -1,0 +1,14 @@
+name: ${project.name}
+main: net.enelson.soppets.SopPetsPlugin
+version: ${project.version}
+authors: [E_NeLsOn]
+softdepend: [FreeMinecraftModels]
+api-version: 1.16
+commands:
+  pets:
+    usage: /pets
+permissions:
+  soppets.admin:
+    default: op
+  soppets.use:
+    default: true

@@ -1,0 +1,9 @@
+follow:
+  interval-ticks: 10
+  teleport-distance: 14.0
+  move-distance: 3.0
+  vertical-offset: 0.2
+
+models:
+  prefer-freeminecraftmodels: true
+
