@@ -92,6 +92,12 @@ public final class FmmBridgeService {
                 this.modelExistsMethod = this.modeledEntityManagerClass.getMethod("modelExists", String.class);
             }
             this.available = true;
+            this.plugin.getLogger().info(
+                "Hooked FreeMinecraftModels using "
+                    + this.dynamicEntityClass.getName()
+                    + " | create=" + describeMethod(this.createMethod)
+                    + " | playAnimation=" + describeMethod(this.playAnimationMethod)
+            );
         } catch (Exception exception) {
             this.plugin.getLogger().warning("FreeMinecraftModels detected, but its API could not be hooked: " + exception.getMessage());
         }
@@ -135,6 +141,10 @@ public final class FmmBridgeService {
             Object handle = this.createMethod.invoke(null, modelId, carrier);
             if (handle == null) {
                 this.plugin.getLogger().warning("FMM returned null while creating model '" + modelId + "'.");
+            } else {
+                this.plugin.getLogger().info(
+                    "Attached FMM model '" + modelId + "' to " + carrier.getType() + " using " + describeMethod(this.createMethod) + "."
+                );
             }
             return handle;
         } catch (Exception exception) {
@@ -173,18 +183,21 @@ public final class FmmBridgeService {
             Class<?>[] parameters = this.playAnimationMethod.getParameterTypes();
             if (parameters.length == 1) {
                 this.playAnimationMethod.invoke(handle, animation);
-            } else if (parameters.length == 2) {
-                Object secondArgument = resolveAnimationSecondArgument(parameters[1], loop);
-                if (secondArgument == UnsupportedArgument.INSTANCE) {
-                    this.plugin.getLogger().warning(
-                        "Unsupported FMM playAnimation second parameter type: " + parameters[1].getName()
-                    );
-                    return false;
-                }
-                this.playAnimationMethod.invoke(handle, animation, secondArgument);
             } else {
-                this.plugin.getLogger().warning("Unsupported FMM playAnimation parameter count: " + parameters.length);
-                return false;
+                Object[] arguments = new Object[parameters.length];
+                arguments[0] = animation;
+                for (int index = 1; index < parameters.length; index++) {
+                    Object argument = resolveAnimationArgument(parameters[index], loop, index);
+                    if (argument == UnsupportedArgument.INSTANCE) {
+                        this.plugin.getLogger().warning(
+                            "Unsupported FMM playAnimation parameter type at index "
+                                + index + ": " + parameters[index].getName()
+                        );
+                        return false;
+                    }
+                    arguments[index] = argument;
+                }
+                this.playAnimationMethod.invoke(handle, arguments);
             }
             return true;
         } catch (Exception exception) {
@@ -216,9 +229,30 @@ public final class FmmBridgeService {
         throw last == null ? new ClassNotFoundException("No matching class name found.") : last;
     }
 
-    private Object resolveAnimationSecondArgument(Class<?> parameterType, boolean loop) {
+    private Object resolveAnimationArgument(Class<?> parameterType, boolean loop, int index) {
         if (parameterType == boolean.class || parameterType == Boolean.class) {
-            return loop;
+            return index == 1 ? loop : Boolean.FALSE;
+        }
+        if (parameterType == byte.class || parameterType == Byte.class) {
+            return (byte) 1;
+        }
+        if (parameterType == short.class || parameterType == Short.class) {
+            return (short) 1;
+        }
+        if (parameterType == int.class || parameterType == Integer.class) {
+            return 1;
+        }
+        if (parameterType == long.class || parameterType == Long.class) {
+            return 1L;
+        }
+        if (parameterType == float.class || parameterType == Float.class) {
+            return 1.0F;
+        }
+        if (parameterType == double.class || parameterType == Double.class) {
+            return 1.0D;
+        }
+        if (parameterType == String.class) {
+            return "";
         }
         if (parameterType.isEnum()) {
             Object[] constants = parameterType.getEnumConstants();
@@ -227,16 +261,37 @@ public final class FmmBridgeService {
             }
             for (Object constant : constants) {
                 String name = ((Enum<?>) constant).name();
-                if (loop && (name.equalsIgnoreCase("LOOP") || name.equalsIgnoreCase("REPEAT"))) {
+                if (index == 1 && loop && (name.equalsIgnoreCase("LOOP") || name.equalsIgnoreCase("REPEAT"))) {
                     return constant;
                 }
-                if (!loop && (name.equalsIgnoreCase("PLAY_ONCE") || name.equalsIgnoreCase("ONCE") || name.equalsIgnoreCase("SINGLE"))) {
+                if (index == 1 && !loop
+                    && (name.equalsIgnoreCase("PLAY_ONCE") || name.equalsIgnoreCase("ONCE") || name.equalsIgnoreCase("SINGLE"))) {
+                    return constant;
+                }
+                if (index > 1 && (name.equalsIgnoreCase("DEFAULT") || name.equalsIgnoreCase("NORMAL"))) {
                     return constant;
                 }
             }
             return constants[0];
         }
         return UnsupportedArgument.INSTANCE;
+    }
+
+    private String describeMethod(Method method) {
+        if (method == null) {
+            return "<missing>";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append(method.getDeclaringClass().getSimpleName()).append('.').append(method.getName()).append('(');
+        Class<?>[] parameters = method.getParameterTypes();
+        for (int index = 0; index < parameters.length; index++) {
+            if (index > 0) {
+                builder.append(", ");
+            }
+            builder.append(parameters[index].getSimpleName());
+        }
+        builder.append(')');
+        return builder.toString();
     }
 
     private enum UnsupportedArgument {

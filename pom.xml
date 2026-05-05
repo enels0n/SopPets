@@ -17,6 +17,7 @@
 
     <build>
         <defaultGoal>clean install</defaultGoal>
+        <finalName>SopPets</finalName>
         <sourceDirectory>${basedir}/src/main/java/</sourceDirectory>
         <resources>
             <resource>

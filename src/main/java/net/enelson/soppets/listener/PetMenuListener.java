@@ -33,11 +33,33 @@ public final class PetMenuListener implements Listener {
         Player player = (Player) event.getWhoClicked();
         PetsMenuHolder holder = (PetsMenuHolder) event.getInventory().getHolder();
 
-        if (event.getRawSlot() == event.getInventory().getSize() - 5) {
+        if (event.getRawSlot() == PetsMenuHolder.HIDE_BUTTON_SLOT) {
             this.plugin.getPetSessionService().despawnPet(player.getUniqueId());
             this.plugin.getPlayerPetStorage().setActivePet(player.getUniqueId(), null);
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Pet hidden.");
+            return;
+        }
+
+        if (event.getRawSlot() == PetsMenuHolder.FILTER_BUTTON_SLOT) {
+            boolean enabled = !holder.isOwnedOnlyFilterEnabled();
+            this.plugin.getPlayerPetStorage().setOwnedOnlyFilterEnabled(player.getUniqueId(), enabled);
+            player.openInventory(this.plugin.getPetMenuService().createMainMenu(player, 0));
+            player.sendMessage(
+                enabled
+                    ? ChatColor.GREEN + "Pet menu now shows only pets you own."
+                    : ChatColor.YELLOW + "Pet menu now shows all pets."
+            );
+            return;
+        }
+
+        if (event.getRawSlot() == PetsMenuHolder.PREVIOUS_PAGE_SLOT && holder.getCurrentPage() > 0) {
+            player.openInventory(this.plugin.getPetMenuService().createMainMenu(player, holder.getCurrentPage() - 1));
+            return;
+        }
+
+        if (event.getRawSlot() == PetsMenuHolder.NEXT_PAGE_SLOT && holder.getCurrentPage() + 1 < holder.getTotalPages()) {
+            player.openInventory(this.plugin.getPetMenuService().createMainMenu(player, holder.getCurrentPage() + 1));
             return;
         }
 

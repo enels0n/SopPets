@@ -6,6 +6,7 @@ import java.util.UUID;
 import net.enelson.soppets.SopPetsPlugin;
 import net.enelson.soppets.model.ActivePetSession;
 import net.enelson.soppets.model.PetDefinition;
+import net.enelson.soppets.model.PetLevelOverride;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
@@ -24,15 +25,23 @@ public final class PetSessionService {
     private final PlayerPetStorage playerPetStorage;
     private final PetDefinitionService petDefinitionService;
     private final FmmBridgeService fmmBridgeService;
+    private final VanillaPetAppearanceService vanillaPetAppearanceService;
     private final Map<UUID, ActivePetSession> sessions = new LinkedHashMap<UUID, ActivePetSession>();
     private PendingSpawn pendingSpawn;
     private BukkitTask followTask;
 
-    public PetSessionService(SopPetsPlugin plugin, PlayerPetStorage playerPetStorage, PetDefinitionService petDefinitionService, FmmBridgeService fmmBridgeService) {
+    public PetSessionService(
+        SopPetsPlugin plugin,
+        PlayerPetStorage playerPetStorage,
+        PetDefinitionService petDefinitionService,
+        FmmBridgeService fmmBridgeService,
+        VanillaPetAppearanceService vanillaPetAppearanceService
+    ) {
         this.plugin = plugin;
         this.playerPetStorage = playerPetStorage;
         this.petDefinitionService = petDefinitionService;
         this.fmmBridgeService = fmmBridgeService;
+        this.vanillaPetAppearanceService = vanillaPetAppearanceService;
     }
 
     public void reload() {
@@ -51,6 +60,10 @@ public final class PetSessionService {
         if (definition == null) {
             return org.bukkit.ChatColor.RED + "Unknown pet.";
         }
+        if (!hasAccess(player, definition)) {
+            return org.bukkit.ChatColor.RED + "You do not have access to that pet.";
+        }
+        definition = resolveEffectiveDefinition(player, definition);
 
         despawnPet(player.getUniqueId());
 
@@ -77,6 +90,68 @@ public final class PetSessionService {
         this.playerPetStorage.setActivePet(player.getUniqueId(), definition.getId());
         updateAnimationState(session, ActivePetSession.AnimationState.SPAWN);
         return null;
+    }
+
+    public boolean hasAccess(Player player, PetDefinition definition) {
+        if (player == null || definition == null) {
+            return false;
+        }
+        return player.hasPermission("soppets.admin")
+            || player.hasPermission("soppets.pet.*")
+            || player.hasPermission(getAccessPermission(definition));
+    }
+
+    public String getAccessPermission(PetDefinition definition) {
+        return "soppets.pet." + definition.getId().toLowerCase();
+    }
+
+    public int getPetLevel(Player player, PetDefinition definition) {
+        if (player == null || definition == null || !this.plugin.getConfig().getBoolean("pet-levels.enabled", false)) {
+            return 1;
+        }
+        int resolved = Math.max(1, this.plugin.getConfig().getInt("pet-levels.default-level", 1));
+        for (Integer level : definition.getLevelOverrides().keySet()) {
+            if (level.intValue() > resolved && player.hasPermission(getLevelPermission(definition, level.intValue()))) {
+                resolved = level.intValue();
+            }
+        }
+        return resolved;
+    }
+
+    public String getLevelPermission(PetDefinition definition, int level) {
+        return "soppets.pet." + definition.getId().toLowerCase() + ".level." + level;
+    }
+
+    public PetDefinition resolveEffectiveDefinition(Player player, PetDefinition baseDefinition) {
+        if (baseDefinition == null) {
+            return null;
+        }
+        int level = getPetLevel(player, baseDefinition);
+        PetLevelOverride override = baseDefinition.getLevelOverrides().get(Integer.valueOf(level));
+        if (override == null) {
+            return baseDefinition;
+        }
+
+        Map<String, Object> mergedAppearance = baseDefinition.getAppearanceSettings();
+        mergedAppearance.putAll(override.getAppearanceSettings());
+
+        return new PetDefinition(
+            baseDefinition.getId(),
+            override.getDisplayName() == null ? baseDefinition.getDisplayName() : override.getDisplayName(),
+            baseDefinition.getEntityType(),
+            override.getModelId() == null ? baseDefinition.getModelId() : override.getModelId(),
+            baseDefinition.isUseFmm(),
+            baseDefinition.isBaby(),
+            override.getGlowing() == null ? baseDefinition.isGlowing() : override.getGlowing().booleanValue(),
+            override.getIconMaterialName() == null ? baseDefinition.getIconMaterialName() : override.getIconMaterialName(),
+            override.getIconDisplayName() == null ? baseDefinition.getIconDisplayName() : override.getIconDisplayName(),
+            override.getIconLore().isEmpty() ? baseDefinition.getIconLore() : override.getIconLore(),
+            override.getIconCustomModelData() == null ? baseDefinition.getIconCustomModelData() : override.getIconCustomModelData().intValue(),
+            override.getMovementSpeed() == null ? baseDefinition.getMovementSpeed() : override.getMovementSpeed().doubleValue(),
+            mergedAppearance,
+            override.getFollowOffset() == null ? baseDefinition.getFollowOffset() : override.getFollowOffset(),
+            baseDefinition.getLevelOverrides()
+        );
     }
 
     public void despawnPet(UUID playerId) {
@@ -222,8 +297,9 @@ public final class PetSessionService {
         if (definition.isBaby() && entity instanceof Ageable) {
             ((Ageable) entity).setBaby();
         }
+        this.vanillaPetAppearanceService.apply(entity, definition);
         if (entity.getAttribute(Attribute.MOVEMENT_SPEED) != null) {
-            entity.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.35D);
+            entity.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(definition.getMovementSpeed());
         }
     }
 

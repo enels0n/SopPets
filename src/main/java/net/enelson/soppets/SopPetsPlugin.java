@@ -7,6 +7,7 @@ import net.enelson.soppets.listener.PetProtectionListener;
 import net.enelson.soppets.listener.PetSpawnBypassListener;
 import net.enelson.soppets.service.FmmBridgeService;
 import net.enelson.soppets.service.PaperPetFollowService;
+import net.enelson.soppets.service.VanillaPetAppearanceService;
 import net.enelson.soppets.service.PetDefinitionService;
 import net.enelson.soppets.service.PetMenuService;
 import net.enelson.soppets.service.PetSessionService;
@@ -20,6 +21,7 @@ public final class SopPetsPlugin extends JavaPlugin {
     private PetSessionService petSessionService;
     private PetMenuService petMenuService;
     private PaperPetFollowService paperPetFollowService;
+    private VanillaPetAppearanceService vanillaPetAppearanceService;
 
     @Override
     public void onEnable() {
@@ -29,7 +31,8 @@ public final class SopPetsPlugin extends JavaPlugin {
         this.petDefinitionService = new PetDefinitionService(this);
         this.fmmBridgeService = new FmmBridgeService(this);
         this.paperPetFollowService = new PaperPetFollowService(this);
-        this.petSessionService = new PetSessionService(this, this.playerPetStorage, this.petDefinitionService, this.fmmBridgeService);
+        this.vanillaPetAppearanceService = new VanillaPetAppearanceService(this);
+        this.petSessionService = new PetSessionService(this, this.playerPetStorage, this.petDefinitionService, this.fmmBridgeService, this.vanillaPetAppearanceService);
         this.petMenuService = new PetMenuService(this);
 
         getCommand("pets").setExecutor(new PetsCommand(this));
@@ -77,5 +80,9 @@ public final class SopPetsPlugin extends JavaPlugin {
 
     public PaperPetFollowService getPaperPetFollowService() {
         return this.paperPetFollowService;
+    }
+
+    public VanillaPetAppearanceService getVanillaPetAppearanceService() {
+        return this.vanillaPetAppearanceService;
     }
 }

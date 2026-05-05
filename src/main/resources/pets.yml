@@ -6,18 +6,55 @@ pets:
     use-fmm: false
     baby: true
     glowing: false
+    movement-speed: 0.35
+    icon:
+      material: FOX_SPAWN_EGG
+      name: '&6Fox'
+      lore:
+        - '&7ID: &f%pet_id%'
+        - '&7Engine: &f%pet_engine%'
+        - '&7Access: &f%pet_permission%'
+        - '&7Level: &f%pet_level%'
+        - ''
+        - '%pet_status_colored%'
+      custom-model-data: 0
+    appearance:
+      fox-type: RED
     follow-offset:
       x: 1.0
       y: 0.0
       z: 1.0
+    levels:
+      2:
+        icon:
+          name: '&6Fox &7[Lv.2]'
+        appearance:
+          fox-type: SNOW
   spirit:
     display-name: '&bSpirit'
     entity-type: BAT
-    model-id: 'spirit_pet'
+    model-id: 'pet_angel'
     use-fmm: true
     baby: false
     glowing: false
+    movement-speed: 0.35
+    icon:
+      material: BAT_SPAWN_EGG
+      name: '&bSpirit'
+      lore:
+        - '&7ID: &f%pet_id%'
+        - '&7Engine: &f%pet_engine%'
+        - '&7Access: &f%pet_permission%'
+        - '&7Level: &f%pet_level%'
+        - ''
+        - '%pet_status_colored%'
+      custom-model-data: 0
     follow-offset:
       x: 1.2
       y: 1.0
       z: 1.2
+    levels:
+      2:
+        icon:
+          name: '&bSpirit &7[Lv.2]'
+        glowing: true

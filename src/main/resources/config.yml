@@ -7,3 +7,6 @@ follow:
 models:
   prefer-freeminecraftmodels: true
 
+pet-levels:
+  enabled: false
+  default-level: 1

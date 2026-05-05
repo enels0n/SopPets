@@ -28,8 +28,17 @@ public final class PlayerPetStorage {
         return this.config.getString("players." + playerId.toString() + ".active-pet");
     }
 
+    public boolean isOwnedOnlyFilterEnabled(UUID playerId) {
+        return this.config.getBoolean("players." + playerId.toString() + ".menu.owned-only", false);
+    }
+
     public void setActivePet(UUID playerId, String petId) {
         this.config.set("players." + playerId.toString() + ".active-pet", petId);
+        save();
+    }
+
+    public void setOwnedOnlyFilterEnabled(UUID playerId, boolean enabled) {
+        this.config.set("players." + playerId.toString() + ".menu.owned-only", enabled);
         save();
     }
 

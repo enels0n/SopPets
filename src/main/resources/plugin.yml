@@ -12,3 +12,5 @@ permissions:
     default: op
   soppets.use:
     default: true
+  soppets.pet.*:
+    default: op
